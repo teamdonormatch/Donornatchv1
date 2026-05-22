@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DonorMatch — Smart Blood Donor Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --crimson: #C41E3A;
+  --crimson-dark: #8B0000;
+  --crimson-light: #E8395B;
+  --crimson-pale: #FFF0F3;
+  --crimson-glow: rgba(196,30,58,0.15);
+  --gold: #D4A017;
+  --gold-light: #F0C040;
+  --bg: #0A0A0F;
+  --bg-card: #11111A;
+  --bg-card2: #16162A;
+  --bg-input: #1A1A2E;
+  --border: rgba(196,30,58,0.2);
+  --border-light: rgba(255,255,255,0.07);
+  --text: #F5F5F7;
+  --text-muted: #8B8B9A;
+  --text-dim: #55556A;
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --info: #3B82F6;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow: 0 4px 40px rgba(0,0,0,0.5);
+  --shadow-red: 0 4px 30px rgba(196,30,58,0.3);
+}
+
+html { scroll-behavior: smooth; }
+body { 
+  font-family: 'DM Sans', sans-serif; 
+  background: var(--bg); 
+  color: var(--text); 
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--crimson); border-radius: 3px; }
+
+/* NOISE TEXTURE */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0; opacity: 0.4;
+}
+
+/* LAYOUT */
+#app { position: relative; z-index: 1; }
+.page { display: none; min-height: 100vh; }
+.page.active { display: flex; }
+
+/* NAV */
+.nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px; height: 72px;
+  background: rgba(10,10,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { 
+  display: flex; align-items: center; gap: 10px; 
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px;
+  text-decoration: none; color: var(--text);
+}
+.nav-logo-icon {
+  width: 36px; height: 36px;
+  background: var(--crimson);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px rgba(196,30,58,0.5);
+}
+.nav-logo span { color: var(--crimson); }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 260px; min-height: 100vh;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  padding: 88px 0 24px;
+  position: fixed; left: 0; top: 0; bottom: 0;
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.sidebar-section { padding: 8px 16px; }
+.sidebar-label {
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+  color: var(--text-dim); text-transform: uppercase;
+  padding: 12px 12px 6px;
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--text-muted);
+  font-size: 14px; font-weight: 500;
+  transition: all 0.2s; margin-bottom: 2px;
+  border: 1px solid transparent;
+}
+.sidebar-item:hover { background: var(--bg-card2); color: var(--text); }
+.sidebar-item.active { 
+  background: var(--crimson-glow); color: var(--crimson-light);
+  border-color: var(--border);
+}
+.sidebar-item .icon { font-size: 18px; width: 22px; text-align: center; }
+.sidebar-badge {
+  margin-left: auto; background: var(--crimson);
+  color: white; font-size: 11px; font-weight: 700;
+  border-radius: 10px; padding: 2px 8px;
+}
+.sidebar-bottom {
+  margin-top: auto; padding: 16px;
+  border-top: 1px solid var(--border-light);
+}
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px; border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--crimson), var(--crimson-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 14px; flex-shrink: 0;
+}
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-role { font-size: 11px; color: var(--text-muted); }
+
+/* MAIN CONTENT */
+.main-content {
+  margin-left: 260px; flex: 1;
+  padding: 88px 32px 32px;
+  min-height: 100vh;
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 11px 22px; border-radius: var(--radius-sm);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.2s; text-decoration: none;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--crimson); color: white;
+  box-shadow: 0 2px 16px rgba(196,30,58,0.4);
+}
+.btn-primary:hover { background: var(--crimson-light); transform: translateY(-1px); box-shadow: var(--shadow-red); }
+.btn-outline {
+  background: transparent; color: var(--text);
+  border: 1px solid var(--border-light);
+}
+.btn-outline:hover { background: var(--bg-card2); border-color: var(--crimson); }
+.btn-ghost { background: transparent; color: var(--text-muted); }
+.btn-ghost:hover { color: var(--text); }
+.btn-success { background: var(--success); color: white; }
+.btn-warning { background: var(--warning); color: white; }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn-lg { padding: 14px 28px; font-size: 16px; border-radius: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* CARDS */
+.card {
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 24px;
+  transition: border-color 0.2s;
+}
+.card:hover { border-color: var(--border); }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; }
+
+/* STAT CARDS */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--bg-card); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 20px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent, var(--crimson));
+}
+.stat-label { font-size: 12px; color: var(--text-muted); font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+.stat-sub { font-size: 12px; color: var(--text-muted); }
+.stat-icon { position: absolute; right: 20px; top: 20px; font-size: 28px; opacity: 0.15; }
+
+/* FORMS */
+.form-group { margin-bottom: 20px; }
+.form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--text-muted); letter-spacing: 0.3px; }
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 12px 16px;
+  background: var(--bg-input); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--crimson); box-shadow: 0 0 0 3px var(--crimson-glow);
+}
+.form-input::placeholder { color: var(--text-dim); }
+.form-textarea { resize: vertical; min-height: 80px; }
+.form-select option { background: var(--bg-card); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-error { color: #FF6B6B; font-size: 12px; margin-top: 6px; }
+
+/* TABLES */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { 
+  text-align: left; padding: 12px 16px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  color: var(--text-dim); border-bottom: 1px solid var(--border-light);
+}
+td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* BADGES */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-red { background: rgba(196,30,58,0.2); color: var(--crimson-light); }
+.badge-green { background: rgba(34,197,94,0.15); color: #4ADE80; }
+.badge-yellow { background: rgba(245,158,11,0.15); color: #FCD34D; }
+.badge-blue { background: rgba(59,130,246,0.15); color: #93C5FD; }
+.badge-purple { background: rgba(168,85,247,0.15); color: #C084FC; }
+.badge-gray { background: rgba(255,255,255,0.08); color: var(--text-muted); }
+
+/* BLOOD GROUP CHIPS */
+.blood-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--crimson), var(--crimson-dark));
+  font-weight: 800; font-size: 13px; color: white;
+  box-shadow: 0 2px 12px rgba(196,30,58,0.4);
+  flex-shrink: 0;
+}
+
+/* PULSE DOT */
+.pulse-dot { 
+  width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+  display: inline-block; position: relative;
+}
+.pulse-dot::after {
+  content: ''; position: absolute; inset: -4px;
+  border-radius: 50%; background: var(--success); opacity: 0.3;
+  animation: pulse 1.5s ease-out infinite;
+}
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.3; } 100% { transform: scale(2.5); opacity: 0; } }
+
+/* SCORE BAR */
+.score-bar-wrap { display: flex; align-items: center; gap: 10px; }
+.score-bar { flex: 1; height: 6px; background: var(--bg-input); border-radius: 3px; overflow: hidden; }
+.score-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.score-label { font-size: 12px; font-weight: 700; min-width: 36px; text-align: right; }
+
+/* MODAL */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+  display: none; align-items: center; justify-content: center; padding: 24px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 32px; width: 100%; max-width: 560px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+.modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 24px; line-height: 1; }
+
+/* TOAST */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--bg-card2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px;
+  min-width: 280px; max-width: 380px;
+  animation: toastIn 0.3s ease;
+  box-shadow: var(--shadow);
+}
+@keyframes toastIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+.toast-icon { font-size: 20px; }
+.toast-text { flex: 1; font-size: 14px; }
+
+/* LOADING */
+.loading-spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 3px solid var(--border); border-top-color: var(--crimson);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(10,10,15,0.7); border-radius: var(--radius); z-index: 10;
+}
+
+/* HERO / AUTH */
+.auth-page {
+  min-height: 100vh; display: flex;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(196,30,58,0.12) 0%, transparent 60%);
+}
+.auth-left {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px; max-width: 520px; margin: 0 auto;
+}
+.auth-right {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, rgba(196,30,58,0.1) 0%, rgba(139,0,0,0.05) 100%);
+  border-left: 1px solid var(--border);
+  padding: 40px;
+}
+.auth-hero { text-align: center; }
+.auth-hero-icon {
+  width: 80px; height: 80px; border-radius: 24px;
+  background: linear-gradient(135deg, var(--crimson), var(--crimson-dark));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; margin: 0 auto 24px;
+  box-shadow: 0 8px 40px rgba(196,30,58,0.5);
+}
+.auth-hero h1 {
+  font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800;
+  line-height: 1.1; margin-bottom: 16px;
+}
+.auth-hero h1 em { color: var(--crimson); font-style: normal; }
+.auth-hero p { color: var(--text-muted); font-size: 16px; line-height: 1.6; max-width: 380px; }
+.auth-features { margin-top: 48px; display: flex; flex-direction: column; gap: 20px; }
+.auth-feature { display: flex; align-items: flex-start; gap: 14px; text-align: left; }
+.auth-feature-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.auth-feature h4 { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.auth-feature p { font-size: 13px; color: var(--text-muted); }
+
+/* AUTH FORM */
+.auth-form-wrap { width: 100%; max-width: 440px; }
+.auth-form-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 6px; }
+.auth-form-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+.auth-switch { margin-top: 24px; text-align: center; font-size: 14px; color: var(--text-muted); }
+.auth-switch a { color: var(--crimson-light); cursor: pointer; text-decoration: none; font-weight: 600; }
+
+/* ML STATUS */
+.ml-status-card {
+  background: linear-gradient(135deg, rgba(168,85,247,0.1), rgba(59,130,246,0.05));
+  border: 1px solid rgba(168,85,247,0.2);
+  border-radius: var(--radius); padding: 20px;
+  display: flex; align-items: center; gap: 16px;
+}
+.ml-brain { font-size: 36px; }
+.ml-status-info h3 { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.ml-status-info p { font-size: 13px; color: var(--text-muted); }
+.ml-progress { flex: 1; }
+.ml-progress-bar { height: 8px; background: var(--bg-input); border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.ml-progress-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #A855F7, #3B82F6);
+  transition: width 0.5s ease;
+}
+
+/* URGENCY INDICATOR */
+.urgency-critical { color: var(--crimson-light); }
+.urgency-urgent { color: var(--warning); }
+.urgency-standard { color: var(--success); }
+
+/* DONOR CARD */
+.donor-card {
+  background: var(--bg-card2); border: 1px solid var(--border-light);
+  border-radius: var(--radius); padding: 20px;
+  display: flex; align-items: flex-start; gap: 16px;
+  margin-bottom: 12px; cursor: pointer;
+  transition: all 0.2s;
+}
+.donor-card:hover { border-color: var(--crimson); transform: translateX(4px); }
+.donor-card.selected { border-color: var(--success); background: rgba(34,197,94,0.05); }
+.donor-info { flex: 1; }
+.donor-name { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+.donor-meta { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--text-muted); flex-wrap: wrap; }
+.donor-scores { display: flex; gap: 12px; margin-top: 10px; }
+.donor-score-item { flex: 1; }
+.donor-score-label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.donor-actions { display: flex; gap: 8px; align-items: flex-start; flex-shrink: 0; }
+
+/* PAYMENT SECTION */
+.payment-card {
+  background: linear-gradient(135deg, rgba(212,160,23,0.08), rgba(196,30,58,0.05));
+  border: 1px solid rgba(212,160,23,0.2);
+  border-radius: var(--radius); padding: 24px;
+}
+.bank-details {
+  background: var(--bg-input); border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); padding: 20px; margin: 16px 0;
+}
+.bank-detail-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border-light); }
+.bank-detail-row:last-child { border-bottom: none; }
+.bank-detail-label { font-size: 12px; color: var(--text-muted); }
+.bank-detail-value { font-size: 15px; font-weight: 700; }
+.copy-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; font-size: 16px; }
+.copy-btn:hover { color: var(--crimson); }
+
+/* TIMELINE */
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.timeline-item { display: flex; gap: 16px; }
+.timeline-dot-wrap { display: flex; flex-direction: column; align-items: center; }
+.timeline-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0; z-index: 1;
+}
+.timeline-dot.done { background: var(--success); }
+.timeline-dot.active { background: var(--crimson); box-shadow: 0 0 16px rgba(196,30,58,0.5); }
+.timeline-dot.pending { background: var(--bg-input); border: 2px solid var(--border); }
+.timeline-line { width: 2px; flex: 1; background: var(--border-light); min-height: 24px; }
+.timeline-content { padding-bottom: 24px; padding-top: 6px; }
+.timeline-title { font-size: 14px; font-weight: 700; }
+.timeline-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 60px 24px; }
+.empty-state-icon { font-size: 56px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state h3 { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.empty-state p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+
+/* GLOW ORB */
+.glow-orb {
+  position: fixed; border-radius: 50%; filter: blur(80px); pointer-events: none; z-index: 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+  .sidebar.open { transform: translateX(0); }
+  .main-content { margin-left: 0; padding: 80px 16px 16px; }
+  .form-row { grid-template-columns: 1fr; }
+  .auth-right { display: none; }
+  .auth-left { padding: 24px 20px; }
+}
+
+/* ANIMATIONS */
+.fade-in { animation: fadeIn 0.4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.section-header { margin-bottom: 24px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 4px; }
+.section-sub { color: var(--text-muted); font-size: 14px; }
+
+/* TAG INPUT */
+.input-with-icon { position: relative; }
+.input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+.input-with-icon .form-input { padding-left: 40px; }
+
+/* SEARCH */
+.search-wrap { position: relative; }
+.search-wrap input { padding-left: 40px; }
+.search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-dim); }
+
+/* TABS */
+.tabs { display: flex; gap: 4px; background: var(--bg-card2); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 24px; }
+.tab { flex: 1; padding: 9px 16px; border-radius: 8px; text-align: center; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+.tab.active { background: var(--crimson); color: white; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- GLOW ORBS -->
+  <div class="glow-orb" style="width:600px;height:600px;background:rgba(196,30,58,0.06);top:-200px;right:-200px;"></div>
+  <div class="glow-orb" style="width:400px;height:400px;background:rgba(59,130,246,0.04);bottom:100px;left:-150px;"></div>
+
+  <!-- AUTH PAGES -->
+  <div id="page-landing" class="page active" style="flex-direction:column;">
+    <div class="auth-page" style="flex:1;">
+      <div class="auth-left">
+        <div class="auth-form-wrap fade-in">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;">
+            <div class="nav-logo-icon">🩸</div>
+            <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;">Donor<span style="color:var(--crimson)">Match</span></span>
+          </div>
+          <div class="auth-form-title">Welcome back</div>
+          <div class="auth-form-sub">Sign in to your hospital account</div>
+          <div id="login-error" class="form-error" style="margin-bottom:16px;display:none;background:rgba(255,107,107,0.1);padding:12px;border-radius:8px;"></div>
+          <div class="form-group">
+            <label class="form-label">Username</label>
+            <div class="input-with-icon">
+              <span class="input-icon">👤</span>
+              <input id="login-username" class="form-input" type="text" placeholder="Enter username" autocomplete="username">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <div class="input-with-icon">
+              <span class="input-icon">🔒</span>
+              <input id="login-password" class="form-input" type="password" placeholder="Enter password" autocomplete="current-password">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;" onclick="handleLogin()" id="login-btn">
+            <span>Sign In</span> →
+          </button>
+          <div class="auth-switch">
+            Don't have an account? <a onclick="showPage('page-signup')">Register your hospital</a>
+          </div>
+          <div style="margin-top:16px;text-align:center;padding:12px;background:var(--bg-card2);border-radius:8px;font-size:12px;color:var(--text-muted);">
+            Demo: <strong style="color:var(--text);">demo</strong> / <strong style="color:var(--text);">demo1234</strong>
+          </div>
+        </div>
+      </div>
+      <div class="auth-right">
+        <div class="auth-hero">
+          <div class="auth-hero-icon">🩸</div>
+          <h1>Smart Blood<br>Donor <em>Matching</em></h1>
+          <p>AI-powered platform connecting hospitals with verified blood donors in real-time through intelligent matching and verification.</p>
+          <div class="auth-features">
+            <div class="auth-feature">
+              <div class="auth-feature-icon" style="background:rgba(196,30,58,0.2);">🔗</div>
+              <div>
+                <h4>N8N Workflow Integration</h4>
+                <p>Automated donor discovery through connected n8n workflows and external networks</p>
+              </div>
+            </div>
+            <div class="auth-feature">
+              <div class="auth-feature-icon" style="background:rgba(168,85,247,0.2);">🧠</div>
+              <div>
+                <h4>Self-Learning AI Engine</h4>
+                <p>Learns from every match and eventually operates autonomously without n8n</p>
+              </div>
+            </div>
+            <div class="auth-feature">
+              <div class="auth-feature-icon" style="background:rgba(34,197,94,0.2);">✅</div>
+              <div>
+                <h4>Real-time Availability Checks</h4>
+                <p>Verify donor availability via automated calls before presenting to hospitals</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNUP PAGE -->
+  <div id="page-signup" class="page" style="flex-direction:column;">
+    <div class="auth-page" style="flex:1;">
+      <div class="auth-left" style="max-width:600px;">
+        <div class="auth-form-wrap fade-in" style="max-width:540px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
+            <div class="nav-logo-icon">🩸</div>
+            <span style="font-family:'Syne',sans-serif;font-weight:800;font-size:20px;">Donor<span style="color:var(--crimson)">Match</span></span>
+          </div>
+          <div class="auth-form-title">Register your Hospital</div>
+          <div class="auth-form-sub">Join the network and start requesting blood donors</div>
+          <div id="signup-error" class="form-error" style="margin-bottom:16px;display:none;background:rgba(255,107,107,0.1);padding:12px;border-radius:8px;"></div>
+          
+          <div style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;">Account Details</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">First Name</label>
+              <input id="su-fname" class="form-input" type="text" placeholder="First name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Last Name</label>
+              <input id="su-lname" class="form-input" type="text" placeholder="Last name">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input id="su-username" class="form-input" type="text" placeholder="Choose username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input id="su-email" class="form-input" type="email" placeholder="Hospital email">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input id="su-password" class="form-input" type="password" placeholder="Min 8 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input id="su-confirm" class="form-input" type="password" placeholder="Confirm password">
+            </div>
+          </div>
+          
+          <div style="font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;margin-top:8px;">Hospital Information</div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Hospital Name</label>
+              <input id="su-hname" class="form-input" type="text" placeholder="Full hospital name">
+            </div>
+            <div class="form-group">
+              <label class="form-label">License Number</label>
+              <input id="su-license" class="form-input" type="text" placeholder="License #">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">City</label>
+              <input id="su-city" class="form-input" type="text" placeholder="City">
+            </div>
+            <div class="form-group">
+              <label class="form-label">State</label>
+              <input id="su-state" class="form-input" type="text" placeholder="State">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Hospital Address</label>
+            <input id="su-address" class="form-input" type="text" placeholder="Full address">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone Number</label>
+              <input id="su-phone" class="form-input" type="tel" placeholder="+234...">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hospital Email</label>
+              <input id="su-hemail" class="form-input" type="email" placeholder="Hospital email">
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;" onclick="handleSignup()">
+            Create Hospital Account →
+          </button>
+          <div class="auth-switch">
+            Already have an account? <a onclick="showPage('page-landing')">Sign in</a>
+          </div>
+        </div>
+      </div>
+      <div class="auth-right" style="display:flex;align-items:center;justify-content:center;">
+        <div style="text-align:center;max-width:340px;">
+          <div style="font-size:80px;margin-bottom:24px;">🏥</div>
+          <h2 style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-bottom:12px;">Join 200+ Hospitals</h2>
+          <p style="color:var(--text-muted);line-height:1.7;">Access Nigeria's largest blood donor network with real-time matching, AI-powered availability checks, and secure bank transfer payments.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="page-app" class="page" style="flex-direction:column;">
+    <!-- NAV -->
+    <nav class="nav">
+      <div class="nav-logo">
+        <div class="nav-logo-icon">🩸</div>
+        Donor<span>Match</span>
+      </div>
+      <div style="flex:1;max-width:400px;margin:0 32px;">
+        <div class="search-wrap" style="display:none;" id="nav-search">
+          <span class="search-icon">🔍</span>
+          <input class="form-input" placeholder="Search requests, donors..." style="height:40px;background:var(--bg-card2);">
+        </div>
+      </div>
+      <div class="nav-actions">
+        <div id="ml-indicator" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.2);border-radius:20px;font-size:12px;font-weight:600;color:#C084FC;">
+          <span>🧠</span> <span id="ml-mode-text">N8N Mode</span>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="handleLogout()">Sign Out</button>
+      </div>
+    </nav>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <div class="sidebar-item active" onclick="showDashboard()" id="nav-dashboard">
+          <span class="icon">📊</span> Dashboard
+        </div>
+        <div class="sidebar-item" onclick="showRequests()" id="nav-requests">
+          <span class="icon">🩸</span> Blood Requests
+          <span class="sidebar-badge" id="pending-count" style="display:none;">0</span>
+        </div>
+        <div class="sidebar-item" onclick="showNewRequest()" id="nav-new-request">
+          <span class="icon">➕</span> New Request
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Intelligence</div>
+        <div class="sidebar-item" onclick="showMLStatus()" id="nav-ml">
+          <span class="icon">🧠</span> AI/ML Status
+        </div>
+        <div class="sidebar-item" onclick="showN8NStatus()" id="nav-n8n">
+          <span class="icon">🔗</span> N8N Workflow
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Account</div>
+        <div class="sidebar-item" onclick="showProfile()" id="nav-profile">
+          <span class="icon">🏥</span> Hospital Profile
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="sidebar-user">
+          <div class="avatar" id="sidebar-avatar">H</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="sidebar-name">Hospital</div>
+            <div class="sidebar-user-role">Verified Member</div>
+          </div>
+          <div class="pulse-dot"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="fade-in">
+        <div class="section-header">
+          <div class="section-title">Dashboard</div>
+          <div class="section-sub" id="dashboard-welcome">Good day — here's your overview</div>
+        </div>
+
+        <div class="stat-grid" id="stat-grid">
+          <div class="stat-card" style="--accent:#C41E3A;">
+            <div class="stat-icon">🩸</div>
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-sub">All time</div>
+          </div>
+          <div class="stat-card" style="--accent:#22C55E;">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Completed</div>
+            <div class="stat-value" id="stat-completed">—</div>
+            <div class="stat-sub">Successful matches</div>
+          </div>
+          <div class="stat-card" style="--accent:#F59E0B;">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-label">In Progress</div>
+            <div class="stat-value" id="stat-pending">—</div>
+            <div class="stat-sub">Active requests</div>
+          </div>
+          <div class="stat-card" style="--accent:#3B82F6;">
+            <div class="stat-icon">📈</div>
+            <div class="stat-label">Success Rate</div>
+            <div class="stat-value" id="stat-rate">—</div>
+            <div class="stat-sub">Match accuracy</div>
+          </div>
+        </div>
+
+        <!-- ML Status Banner -->
+        <div class="ml-status-card" style="margin-bottom:24px;">
+          <div class="ml-brain">🧠</div>
+          <div class="ml-status-info">
+            <h3 id="ml-status-title">AI Learning Mode</h3>
+            <p id="ml-status-desc">Training from n8n data to autonomously match donors</p>
+          </div>
+          <div class="ml-progress" style="max-width:200px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-muted);">
+              <span>Progress</span>
+              <span id="ml-progress-pct">0%</span>
+            </div>
+            <div class="ml-progress-bar">
+              <div class="ml-progress-fill" id="ml-progress-fill" style="width:0%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Blood Requests</div>
+            <button class="btn btn-outline btn-sm" onclick="showRequests()">View All</button>
+          </div>
+          <div class="table-wrap">
+            <table id="recent-requests-table">
+              <thead>
+                <tr>
+                  <th>Blood Type</th>
+                  <th>Patient</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th>Handler</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="recent-requests-body">
+                <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text-muted);">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REQUESTS LIST -->
+      <div id="view-requests" class="fade-in" style="display:none;">
+        <div class="section-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+          <div>
+            <div class="section-title">Blood Requests</div>
+            <div class="section-sub">All your hospital's blood requests</div>
+          </div>
+          <button class="btn btn-primary" onclick="showNewRequest()">+ New Request</button>
+        </div>
+        <div class="tabs">
+          <div class="tab active" onclick="filterRequests('all', this)">All</div>
+          <div class="tab" onclick="filterRequests('pending', this)">Pending</div>
+          <div class="tab" onclick="filterRequests('donors_found', this)">Donors Found</div>
+          <div class="tab" onclick="filterRequests('payment_pending', this)">Payment</div>
+          <div class="tab" onclick="filterRequests('completed', this)">Completed</div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Blood Type</th>
+                  <th>Units</th>
+                  <th>Urgency</th>
+                  <th>Status</th>
+                  <th>Handler</th>
+                  <th>Date</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="requests-table-body">
+                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEW REQUEST -->
+      <div id="view-new-request" class="fade-in" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">New Blood Request</div>
+          <div class="section-sub">Submit a request to find matching donors</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:20px;">Request Details</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Blood Type Required *</label>
+                <select id="req-blood-group" class="form-select">
+                  <option value="">Select blood type</option>
+                  <option>A+</option><option>A-</option>
+                  <option>B+</option><option>B-</option>
+                  <option>AB+</option><option>AB-</option>
+                  <option>O+</option><option>O-</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Units Needed *</label>
+                <input id="req-units" class="form-input" type="number" min="1" max="10" value="1" placeholder="Number of units">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Urgency Level *</label>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+                <label style="cursor:pointer;">
+                  <input type="radio" name="urgency" value="standard" checked style="display:none;" class="urgency-radio">
+                  <div class="urgency-opt" data-val="standard" onclick="selectUrgency('standard')" style="padding:14px;border:2px solid var(--border-light);border-radius:var(--radius-sm);text-align:center;transition:all 0.2s;border-color:var(--success);">
+                    <div style="font-size:24px;margin-bottom:4px;">🕐</div>
+                    <div style="font-size:13px;font-weight:700;">Standard</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Within 24h</div>
+                  </div>
+                </label>
+                <label style="cursor:pointer;">
+                  <input type="radio" name="urgency" value="urgent" style="display:none;" class="urgency-radio">
+                  <div class="urgency-opt" data-val="urgent" onclick="selectUrgency('urgent')" style="padding:14px;border:2px solid var(--border-light);border-radius:var(--radius-sm);text-align:center;transition:all 0.2s;">
+                    <div style="font-size:24px;margin-bottom:4px;">⚡</div>
+                    <div style="font-size:13px;font-weight:700;">Urgent</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Within 2h</div>
+                  </div>
+                </label>
+                <label style="cursor:pointer;">
+                  <input type="radio" name="urgency" value="critical" style="display:none;" class="urgency-radio">
+                  <div class="urgency-opt" data-val="critical" onclick="selectUrgency('critical')" style="padding:14px;border:2px solid var(--border-light);border-radius:var(--radius-sm);text-align:center;transition:all 0.2s;">
+                    <div style="font-size:24px;margin-bottom:4px;">🚨</div>
+                    <div style="font-size:13px;font-weight:700;">Critical</div>
+                    <div style="font-size:11px;color:var(--text-muted);">Immediate</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Patient Name (Optional)</label>
+              <input id="req-patient" class="form-input" type="text" placeholder="Patient's name for reference">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Patient Condition / Notes</label>
+              <textarea id="req-condition" class="form-textarea" placeholder="Brief description of condition or any special requirements..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-lg" style="width:100%;" onclick="submitRequest()" id="submit-request-btn">
+              🩸 Submit Blood Request
+            </button>
+          </div>
+          
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card" style="background:linear-gradient(135deg,rgba(196,30,58,0.1),rgba(139,0,0,0.05));">
+              <div style="font-size:24px;margin-bottom:12px;">🔗</div>
+              <div style="font-weight:700;margin-bottom:6px;">How it works</div>
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-dot-wrap"><div class="timeline-dot done">1</div><div class="timeline-line"></div></div>
+                  <div class="timeline-content"><div class="timeline-title">Submit Request</div><div class="timeline-sub">You fill the form and submit</div></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot-wrap"><div class="timeline-dot done">2</div><div class="timeline-line"></div></div>
+                  <div class="timeline-content"><div class="timeline-title">AI/N8N Matching</div><div class="timeline-sub">System finds compatible donors</div></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot-wrap"><div class="timeline-dot done">3</div><div class="timeline-line"></div></div>
+                  <div class="timeline-content"><div class="timeline-title">Verify Availability</div><div class="timeline-sub">Check each donor is ready</div></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot-wrap"><div class="timeline-dot done">4</div><div class="timeline-line"></div></div>
+                  <div class="timeline-content"><div class="timeline-title">Select & Pay</div><div class="timeline-sub">Choose best donor, transfer payment</div></div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-dot-wrap"><div class="timeline-dot done" style="background:var(--success);">✓</div></div>
+                  <div class="timeline-content"><div class="timeline-title">Done!</div><div class="timeline-sub">Session closed, donor notified</div></div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="ml-status-card" style="flex-direction:column;align-items:flex-start;gap:10px;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:24px;">🧠</span>
+                <div>
+                  <div style="font-weight:700;font-size:14px;" id="new-req-ml-title">AI Engine Active</div>
+                  <div style="font-size:12px;color:var(--text-muted);" id="new-req-ml-desc">Learning from every request</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- REQUEST DETAIL -->
+      <div id="view-request-detail" class="fade-in" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+          <button class="btn btn-ghost btn-sm" onclick="showRequests()">← Back</button>
+          <div>
+            <div class="section-title" id="detail-title">Blood Request #—</div>
+            <div class="section-sub" id="detail-sub">Loading...</div>
+          </div>
+          <div style="margin-left:auto;" id="detail-status-badge"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;">
+          <div>
+            <!-- Donor Matches -->
+            <div class="card" style="margin-bottom:20px;">
+              <div class="card-header">
+                <div class="card-title">Matched Donors</div>
+                <div style="display:flex;gap:8px;" id="detail-actions"></div>
+              </div>
+              <div id="donors-list">
+                <div class="empty-state">
+                  <div class="empty-state-icon">🔍</div>
+                  <h3>Finding Donors...</h3>
+                  <p>The system is searching for compatible donors</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Section -->
+            <div id="payment-section" style="display:none;">
+              <div class="payment-card">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                  <span style="font-size:28px;">💳</span>
+                  <div>
+                    <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">Complete Payment</div>
+                    <div style="font-size:13px;color:var(--text-muted);">Transfer to donor's bank account</div>
+                  </div>
+                </div>
+                <div class="bank-details" id="bank-details-card">
+                  <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">Donor Bank Details</div>
+                  <div class="bank-detail-row">
+                    <span class="bank-detail-label">Bank Name</span>
+                    <span class="bank-detail-value" id="pay-bank">—</span>
+                  </div>
+                  <div class="bank-detail-row">
+                    <span class="bank-detail-label">Account Number</span>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <span class="bank-detail-value" id="pay-account">—</span>
+                      <button class="copy-btn" onclick="copyText(document.getElementById('pay-account').textContent)">📋</button>
+                    </div>
+                  </div>
+                  <div class="bank-detail-row">
+                    <span class="bank-detail-label">Account Name</span>
+                    <span class="bank-detail-value" id="pay-name">—</span>
+                  </div>
+                </div>
+                <div class="form-row" style="margin-bottom:16px;">
+                  <div class="form-group">
+                    <label class="form-label">Amount to Transfer (NGN)</label>
+                    <input id="pay-amount" class="form-input" type="number" placeholder="e.g. 15000">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Your Bank Name</label>
+                    <input id="pay-sender-bank" class="form-input" type="text" placeholder="Your bank">
+                  </div>
+                </div>
+                <div class="form-row" style="margin-bottom:16px;">
+                  <div class="form-group">
+                    <label class="form-label">Transfer Reference</label>
+                    <input id="pay-reference" class="form-input" type="text" placeholder="Transaction reference">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Your Account Number</label>
+                    <input id="pay-sender-account" class="form-input" type="text" placeholder="Your account number">
+                  </div>
+                </div>
+                <div style="display:flex;gap:12px;">
+                  <button class="btn btn-primary btn-lg" onclick="initiatePayment()" id="pay-btn" style="flex:1;">
+                    💳 Confirm Transfer & Notify Donor
+                  </button>
+                  <button class="btn btn-success btn-lg" onclick="closeSession()" id="close-session-btn" style="display:none;flex:1;">
+                    ✅ Close Session
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Request Info Sidebar -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card" id="request-info-card">
+              <div class="card-title" style="margin-bottom:16px;">Request Info</div>
+              <div style="display:flex;flex-direction:column;gap:12px;" id="request-info-body"></div>
+            </div>
+            <div class="card" id="request-timeline-card">
+              <div class="card-title" style="margin-bottom:16px;">Request Timeline</div>
+              <div id="request-timeline"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ML STATUS -->
+      <div id="view-ml" class="fade-in" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">AI / ML Intelligence</div>
+          <div class="section-sub">Monitor the self-learning donor matching engine</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+          <div class="card" style="background:linear-gradient(135deg,rgba(168,85,247,0.1),rgba(59,130,246,0.05));border-color:rgba(168,85,247,0.2);">
+            <div style="font-size:48px;margin-bottom:12px;">🧠</div>
+            <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;" id="ml-mode-header">N8N-Assisted Mode</div>
+            <div style="color:var(--text-muted);font-size:14px;margin-bottom:20px;" id="ml-mode-desc">AI is learning from n8n workflow responses and building donor profiles</div>
+            <div style="background:var(--bg-input);border-radius:var(--radius-sm);padding:16px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:13px;color:var(--text-muted);">Autonomy Progress</span>
+                <span style="font-size:13px;font-weight:700;" id="ml-pct-label">0 / 50 matches</span>
+              </div>
+              <div style="height:12px;background:var(--bg-card);border-radius:6px;overflow:hidden;">
+                <div id="ml-big-progress" style="height:100%;background:linear-gradient(90deg,#A855F7,#3B82F6);border-radius:6px;transition:width 0.8s ease;width:0%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;">Learning Metrics</div>
+            <div style="display:flex;flex-direction:column;gap:16px;" id="ml-metrics">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:13px;color:var(--text-muted);">Training Data Points</span>
+                  <span style="font-weight:700;" id="ml-data-pts">—</span>
+                </div>
+                <div class="score-bar"><div class="score-fill" id="ml-data-bar" style="background:var(--crimson);width:0%;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:13px;color:var(--text-muted);">Donor Network Size</span>
+                  <span style="font-weight:700;" id="ml-network-size">—</span>
+                </div>
+                <div class="score-bar"><div class="score-fill" style="background:var(--info);width:60%;"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                  <span style="font-size:13px;color:var(--text-muted);">Match Accuracy</span>
+                  <span style="font-weight:700;">85%</span>
+                </div>
+                <div class="score-bar"><div class="score-fill" style="background:var(--success);width:85%;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">How the AI Works</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+            <div style="padding:20px;background:var(--bg-card2);border-radius:var(--radius-sm);text-align:center;">
+              <div style="font-size:32px;margin-bottom:10px;">📡</div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Phase 1: N8N Learning</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Sends requests to n8n. Records all donor responses and outcomes to build training data</div>
+            </div>
+            <div style="padding:20px;background:var(--bg-card2);border-radius:var(--radius-sm);text-align:center;">
+              <div style="font-size:32px;margin-bottom:10px;">📊</div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Phase 2: Score Building</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">Assigns availability, reliability, and response scores to each donor using outcomes data</div>
+            </div>
+            <div style="padding:20px;background:var(--bg-card2);border-radius:var(--radius-sm);text-align:center;">
+              <div style="font-size:32px;margin-bottom:10px;">🚀</div>
+              <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Phase 3: Autonomous</div>
+              <div style="font-size:13px;color:var(--text-muted);line-height:1.5;">After 50 matches, AI bypasses n8n — directly matches from its own verified donor database</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- N8N STATUS -->
+      <div id="view-n8n" class="fade-in" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">N8N Workflow Status</div>
+          <div class="section-sub">Monitor and test your n8n integration</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+          <div class="card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="font-size:36px;">🔗</div>
+              <div>
+                <div style="font-weight:700;font-size:16px;">N8N Connection</div>
+                <div style="font-size:13px;color:var(--text-muted);" id="n8n-url">Configure in settings</div>
+              </div>
+            </div>
+            <div style="padding:12px;background:rgba(245,158,11,0.1);border-radius:8px;border:1px solid rgba(245,158,11,0.2);margin-bottom:16px;">
+              <div style="font-size:13px;color:var(--warning);font-weight:600;">⚠️ Mock Mode Active</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">N8N not connected. System uses ML fallback. Set N8N_WEBHOOK_URL env var to connect.</div>
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="testN8NConnection()">Test Connection</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:16px;">Webhook Endpoints</div>
+            <div style="font-size:13px;display:flex;flex-direction:column;gap:10px;">
+              <div style="background:var(--bg-input);padding:10px;border-radius:8px;">
+                <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">Blood Request Webhook (N8N → App)</div>
+                <code style="color:var(--crimson-light);font-size:12px;">/api/webhook/n8n/donors-found/</code>
+              </div>
+              <div style="background:var(--bg-input);padding:10px;border-radius:8px;">
+                <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">Send Request (App → N8N)</div>
+                <code style="color:var(--info);font-size:12px;">{N8N_URL}/blood-request</code>
+              </div>
+              <div style="background:var(--bg-input);padding:10px;border-radius:8px;">
+                <div style="color:var(--text-muted);font-size:11px;margin-bottom:4px;">Availability Check (App → N8N)</div>
+                <code style="color:var(--success);font-size:12px;">{N8N_URL}/check-donor-availability</code>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">N8N Payload Format</div>
+          <div style="background:var(--bg-input);border-radius:var(--radius-sm);padding:20px;overflow-x:auto;">
+            <pre style="font-family:monospace;font-size:13px;color:#4ADE80;line-height:1.6;">{
+  "request_id": 42,
+  "blood_group": "O+",
+  "units_needed": 2,
+  "urgency": "urgent",
+  "hospital_name": "Lagos General Hospital",
+  "hospital_city": "Lagos",
+  "hospital_phone": "+234801...",
+  "callback_url": "https://yourapp.com/api/webhook/n8n/donors-found/"
+}</pre>
+          </div>
+          <div style="margin-top:16px;font-size:13px;color:var(--text-muted);">N8N responds to the callback_url with a list of matched donors.</div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="view-profile" class="fade-in" style="display:none;">
+        <div class="section-header">
+          <div class="section-title">Hospital Profile</div>
+          <div class="section-sub">Manage your hospital information and settings</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:20px;">Hospital Information</div>
+            <div class="form-group"><label class="form-label">Hospital Name</label><input id="prof-name" class="form-input" type="text"></div>
+            <div class="form-group"><label class="form-label">License Number</label><input id="prof-license" class="form-input" type="text"></div>
+            <div class="form-group"><label class="form-label">Address</label><textarea id="prof-address" class="form-textarea" rows="2"></textarea></div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">City</label><input id="prof-city" class="form-input" type="text"></div>
+              <div class="form-group"><label class="form-label">State</label><input id="prof-state" class="form-input" type="text"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Phone</label><input id="prof-phone" class="form-input" type="tel"></div>
+              <div class="form-group"><label class="form-label">Email</label><input id="prof-email" class="form-input" type="email"></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="margin-bottom:20px;">Bank Details</div>
+            <div style="padding:12px;background:rgba(34,197,94,0.08);border-radius:8px;border:1px solid rgba(34,197,94,0.2);margin-bottom:16px;font-size:13px;color:#4ADE80;">
+              ✅ Bank details are used as the sender account for donor payments
+            </div>
+            <div class="form-group"><label class="form-label">Bank Name</label><input id="prof-bank" class="form-input" type="text"></div>
+            <div class="form-group"><label class="form-label">Account Number</label><input id="prof-account-num" class="form-input" type="text"></div>
+            <div class="form-group"><label class="form-label">Account Name</label><input id="prof-account-name" class="form-input" type="text"></div>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Bank Details</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="setup-hospital-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🏥 Complete Hospital Setup</div>
+    </div>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:24px;">Please complete your hospital profile to start requesting donors.</p>
+    <div class="form-group"><label class="form-label">Hospital Name *</label><input id="setup-hname" class="form-input" placeholder="Full hospital name"></div>
+    <div class="form-group"><label class="form-label">License Number *</label><input id="setup-license" class="form-input" placeholder="License #"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">City *</label><input id="setup-city" class="form-input" placeholder="City"></div>
+      <div class="form-group"><label class="form-label">State *</label><input id="setup-state" class="form-input" placeholder="State"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Address *</label><input id="setup-address" class="form-input" placeholder="Full address"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Phone *</label><input id="setup-phone" class="form-input" placeholder="+234..."></div>
+      <div class="form-group"><label class="form-label">Email *</label><input id="setup-email" class="form-input" type="email"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;" onclick="setupHospital()">Complete Setup →</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let token = localStorage.getItem('dm_token');
+let currentUser = null;
+let currentHospital = null;
+let currentRequestId = null;
+let selectedMatchId = null;
+let allRequests = [];
+
+const API = '';
+
+// ============================================================
+// API HELPER
+// ============================================================
+async function api(path, opts = {}) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  try {
+    const res = await fetch(API + path, { headers, ...opts });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) { logout(); return null; }
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    console.error('API error', e);
+    return { ok: false, data: { error: 'Network error' } };
+  }
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const colors = { success: 'var(--success)', error: '#FF6B6B', info: 'var(--info)', warning: 'var(--warning)' };
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.borderLeftColor = colors[type];
+  el.style.borderLeftWidth = '4px';
+  el.innerHTML = `<span class="toast-icon">${icons[type]}</span><span class="toast-text">${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function handleLogin() {
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  const username = document.getElementById('login-username').value;
+  const password = document.getElementById('login-password').value;
+  const r = await api('/api/auth/login/', { method: 'POST', body: JSON.stringify({ username, password }) });
+  btn.disabled = false; btn.innerHTML = '<span>Sign In</span> →';
+  if (r && r.ok) {
+    token = r.data.access;
+    localStorage.setItem('dm_token', token);
+    currentUser = r.data.user;
+    currentHospital = r.data.hospital;
+    initApp();
+  } else {
+    const err = document.getElementById('login-error');
+    err.style.display = 'block';
+    err.textContent = r?.data?.error || 'Login failed. Check your credentials.';
+  }
+}
+
+async function handleSignup() {
+  const userData = {
+    username: document.getElementById('su-username').value,
+    email: document.getElementById('su-email').value,
+    password: document.getElementById('su-password').value,
+    confirm_password: document.getElementById('su-confirm').value,
+    first_name: document.getElementById('su-fname').value,
+    last_name: document.getElementById('su-lname').value,
+  };
+  const r = await api('/api/auth/register/', { method: 'POST', body: JSON.stringify(userData) });
+  if (r && r.ok) {
+    token = r.data.access;
+    localStorage.setItem('dm_token', token);
+    currentUser = r.data.user;
+    currentHospital = null;
+    
+    // Create hospital profile
+    const hospData = {
+      name: document.getElementById('su-hname').value,
+      license_number: document.getElementById('su-license').value,
+      address: document.getElementById('su-address').value,
+      city: document.getElementById('su-city').value,
+      state: document.getElementById('su-state').value,
+      phone: document.getElementById('su-phone').value,
+      email: document.getElementById('su-hemail').value,
+    };
+    const hr = await api('/api/hospital/create/', { method: 'POST', body: JSON.stringify(hospData) });
+    if (hr && hr.ok) currentHospital = hr.data;
+    initApp();
+  } else {
+    const err = document.getElementById('signup-error');
+    err.style.display = 'block';
+    const errs = r?.data;
+    err.textContent = typeof errs === 'object' ? Object.values(errs).flat().join(' ') : 'Registration failed';
+  }
+}
+
+function handleLogout() {
+  localStorage.removeItem('dm_token');
+  token = null; currentUser = null; currentHospital = null;
+  showPage('page-landing');
+  toast('Signed out successfully', 'info');
+}
+
+// ============================================================
+// INIT APP
+// ============================================================
+async function initApp() {
+  showPage('page-app');
+  if (!currentUser) {
+    const r = await api('/api/auth/me/');
+    if (!r || !r.ok) { showPage('page-landing'); return; }
+    currentUser = r.data.user;
+    currentHospital = r.data.hospital;
+  }
+  if (!currentHospital) {
+    document.getElementById('setup-hospital-modal').classList.add('open');
+  }
+  
+  const name = currentUser.first_name || currentUser.username;
+  document.getElementById('sidebar-name').textContent = currentHospital?.name || name;
+  document.getElementById('sidebar-avatar').textContent = name[0].toUpperCase();
+  
+  showDashboard();
+  loadDashboard();
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function setActiveNav(id) {
+  document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+}
+
+function showView(id) {
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+}
+
+function showDashboard() { setActiveNav('nav-dashboard'); showView('view-dashboard'); loadDashboard(); }
+function showRequests() { setActiveNav('nav-requests'); showView('view-requests'); loadRequests(); }
+function showNewRequest() { setActiveNav('nav-new-request'); showView('view-new-request'); }
+function showMLStatus() { setActiveNav('nav-ml'); showView('view-ml'); loadMLStatus(); }
+function showN8NStatus() { setActiveNav('nav-n8n'); showView('view-n8n'); }
+function showProfile() { setActiveNav('nav-profile'); showView('view-profile'); loadProfile(); }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function loadDashboard() {
+  const r = await api('/api/auth/dashboard/');
+  if (!r || !r.ok) return;
+  const d = r.data;
+  document.getElementById('stat-total').textContent = d.total_requests;
+  document.getElementById('stat-completed').textContent = d.completed_requests;
+  document.getElementById('stat-pending').textContent = d.pending_requests;
+  document.getElementById('stat-rate').textContent = d.success_rate + '%';
+  
+  const pct = Math.min((d.ml_training_data / 50) * 100, 100);
+  document.getElementById('ml-progress-fill').style.width = pct + '%';
+  document.getElementById('ml-progress-pct').textContent = Math.round(pct) + '%';
+  
+  if (d.ml_autonomous_mode) {
+    document.getElementById('ml-status-title').textContent = '🚀 AI Autonomous Mode';
+    document.getElementById('ml-status-desc').textContent = 'AI is now matching donors without n8n — fully autonomous!';
+    document.getElementById('ml-indicator').style.background = 'rgba(168,85,247,0.2)';
+    document.getElementById('ml-mode-text').textContent = 'AI Autonomous';
+  } else {
+    document.getElementById('ml-mode-text').textContent = `N8N + Learning (${d.ml_training_data}/50)`;
+  }
+
+  renderRecentRequests(d.recent_requests || []);
+}
+
+function renderRecentRequests(requests) {
+  const tbody = document.getElementById('recent-requests-body');
+  if (!requests.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">📋</div><h3>No requests yet</h3><p>Submit your first blood request to get started</p><button class="btn btn-primary" onclick="showNewRequest()">+ New Request</button></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = requests.map(r => `
+    <tr>
+      <td><div class="blood-chip">${r.blood_group}</div></td>
+      <td>${r.patient_name || '—'}</td>
+      <td><span class="urgency-${r.urgency}">● ${capitalize(r.urgency)}</span></td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${r.handled_by_ml ? '<span class="badge badge-purple">🧠 AI</span>' : '<span class="badge badge-blue">🔗 N8N</span>'}</td>
+      <td style="color:var(--text-muted);font-size:13px;">${timeAgo(r.created_at)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="viewRequest(${r.id})">View →</button></td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// REQUESTS
+// ============================================================
+async function loadRequests(status = '') {
+  const url = status && status !== 'all' ? `/api/requests/?status=${status}` : '/api/requests/';
+  const r = await api(url);
+  if (!r || !r.ok) return;
+  allRequests = r.data;
+  renderRequestsTable(allRequests);
+  const pending = allRequests.filter(x => ['pending','sent_to_n8n','donors_found','ml_processing'].includes(x.status)).length;
+  const badge = document.getElementById('pending-count');
+  badge.style.display = pending ? 'block' : 'none';
+  badge.textContent = pending;
+}
+
+function filterRequests(status, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  loadRequests(status);
+}
+
+function renderRequestsTable(requests) {
+  const tbody = document.getElementById('requests-table-body');
+  if (!requests.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-state-icon">🩸</div><h3>No blood requests</h3><p>Create your first request</p></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = requests.map(r => `
+    <tr>
+      <td style="color:var(--text-muted);">#${r.id}</td>
+      <td><div class="blood-chip">${r.blood_group}</div></td>
+      <td style="font-weight:700;">${r.units_needed}</td>
+      <td><span class="urgency-${r.urgency}">● ${capitalize(r.urgency)}</span></td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${r.handled_by_ml ? '<span class="badge badge-purple">🧠 AI</span>' : '<span class="badge badge-blue">🔗 N8N</span>'}</td>
+      <td style="color:var(--text-muted);font-size:13px;">${timeAgo(r.created_at)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="viewRequest(${r.id})">View →</button></td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// REQUEST DETAIL
+// ============================================================
+async function viewRequest(id) {
+  currentRequestId = id;
+  selectedMatchId = null;
+  setActiveNav('nav-requests');
+  showView('view-request-detail');
+  document.getElementById('detail-title').textContent = `Blood Request #${id}`;
+  document.getElementById('detail-sub').textContent = 'Loading...';
+  document.getElementById('donors-list').innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner" style="margin:0 auto;"></div><p style="margin-top:16px;color:var(--text-muted);">Loading donors...</p></div>';
+  
+  const r = await api(`/api/requests/${id}/donors/`);
+  if (!r || !r.ok) { toast('Failed to load request', 'error'); return; }
+  
+  const { request, donors } = r.data;
+  
+  document.getElementById('detail-title').textContent = `Blood Request #${id} — ${request.blood_group}`;
+  document.getElementById('detail-sub').textContent = request.patient_name ? `Patient: ${request.patient_name}` : 'No patient name specified';
+  document.getElementById('detail-status-badge').innerHTML = statusBadge(request.status);
+  
+  renderRequestInfo(request);
+  renderTimeline(request);
+  renderDonors(donors, request);
+  
+  // Show/hide payment
+  const showPay = ['donor_selected','payment_pending','payment_confirmed'].includes(request.status);
+  document.getElementById('payment-section').style.display = showPay ? 'block' : 'none';
+  if (showPay) {
+    const selectedMatch = donors.find(m => m.status === 'selected');
+    if (selectedMatch) {
+      document.getElementById('pay-bank').textContent = selectedMatch.donor.bank_name || '—';
+      document.getElementById('pay-account').textContent = selectedMatch.donor.account_number || '—';
+      document.getElementById('pay-name').textContent = selectedMatch.donor.account_name || '—';
+    }
+    if (request.status === 'payment_confirmed') {
+      document.getElementById('pay-btn').style.display = 'none';
+      document.getElementById('close-session-btn').style.display = 'flex';
+    }
+  }
+}
+
+function renderRequestInfo(req) {
+  const info = [
+    ['Blood Type', `<div class="blood-chip" style="width:36px;height:36px;font-size:12px;">${req.blood_group}</div>`],
+    ['Units Needed', req.units_needed],
+    ['Urgency', `<span class="urgency-${req.urgency}">● ${capitalize(req.urgency)}</span>`],
+    ['Status', statusBadge(req.status)],
+    ['Handler', req.handled_by_ml ? '<span class="badge badge-purple">🧠 AI</span>' : '<span class="badge badge-blue">🔗 N8N</span>'],
+    ['Submitted', formatDate(req.created_at)],
+  ];
+  document.getElementById('request-info-body').innerHTML = info.map(([l, v]) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border-light);">
+      <span style="font-size:13px;color:var(--text-muted);">${l}</span>
+      <span style="font-size:13px;font-weight:600;">${v}</span>
+    </div>
+  `).join('');
+}
+
+function renderTimeline(req) {
+  const steps = [
+    { key: 'pending', label: 'Request Submitted', sub: formatDate(req.created_at) },
+    { key: 'sent_to_n8n', label: 'Sent to N8N/AI', sub: 'Processing request' },
+    { key: 'donors_found', label: 'Donors Found', sub: 'Reviewing matches' },
+    { key: 'donor_selected', label: 'Donor Selected', sub: 'Awaiting payment' },
+    { key: 'payment_confirmed', label: 'Payment Confirmed', sub: 'Donor notified' },
+    { key: 'completed', label: 'Completed', sub: req.completed_at ? formatDate(req.completed_at) : '' },
+  ];
+  const statusOrder = ['pending','sent_to_n8n','ml_processing','donors_found','donor_selected','payment_pending','payment_confirmed','completed'];
+  const currentIdx = statusOrder.indexOf(req.status);
+  
+  document.getElementById('request-timeline').innerHTML = steps.map((s, i) => {
+    const isDone = currentIdx >= statusOrder.indexOf(s.key);
+    const isActive = s.key === req.status || (s.key === 'sent_to_n8n' && req.status === 'ml_processing');
+    const dotClass = isDone ? 'done' : isActive ? 'active' : 'pending';
+    const icon = isDone ? '✓' : (i + 1);
+    return `
+      <div class="timeline-item">
+        <div class="timeline-dot-wrap">
+          <div class="timeline-dot ${dotClass}">${icon}</div>
+          ${i < steps.length - 1 ? '<div class="timeline-line"></div>' : ''}
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-title" style="color:${isDone ? 'var(--text)' : 'var(--text-muted)'};">${s.label}</div>
+          <div class="timeline-sub">${s.sub}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderDonors(donors, request) {
+  const el = document.getElementById('donors-list');
+  if (!donors.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔍</div><h3>Searching for Donors</h3><p>The system is finding compatible donors. This may take a moment.</p></div>`;
+    return;
+  }
+  
+  const canSelect = ['donors_found','ml_processing','sent_to_n8n'].includes(request.status);
+  
+  el.innerHTML = donors.map(m => {
+    const d = m.donor;
+    const score = Math.round((m.match_score || 0) * 100);
+    const scoreColor = score > 70 ? 'var(--success)' : score > 50 ? 'var(--warning)' : 'var(--crimson)';
+    const availBadge = m.is_available === true ? '<span class="badge badge-green">✓ Available</span>' :
+                       m.is_available === false ? '<span class="badge badge-red">✗ Unavailable</span>' :
+                       m.status === 'availability_checking' ? '<span class="badge badge-yellow">⏳ Checking...</span>' :
+                       '<span class="badge badge-gray">Not Checked</span>';
+    
+    const isSelected = m.status === 'selected';
+    
+    return `
+      <div class="donor-card ${isSelected ? 'selected' : ''}" id="donor-card-${m.id}">
+        <div class="blood-chip">${d.blood_group}</div>
+        <div class="donor-info">
+          <div class="donor-name">${d.first_name} ${d.last_name}</div>
+          <div class="donor-meta">
+            <span>📍 ${d.city}</span>
+            <span>🎂 ${d.age} yrs</span>
+            <span>⚖️ ${d.weight}kg</span>
+            <span>🩸 ${d.total_donations} donations</span>
+            ${availBadge}
+            ${isSelected ? '<span class="badge badge-green" style="font-size:12px;">⭐ SELECTED</span>' : ''}
+          </div>
+          <div class="donor-scores">
+            <div class="donor-score-item">
+              <div class="donor-score-label">Match Score</div>
+              <div class="score-bar-wrap">
+                <div class="score-bar"><div class="score-fill" style="width:${score}%;background:${scoreColor};"></div></div>
+                <span class="score-label" style="color:${scoreColor};">${score}%</span>
+              </div>
+            </div>
+            <div class="donor-score-item">
+              <div class="donor-score-label">Reliability</div>
+              <div class="score-bar-wrap">
+                <div class="score-bar"><div class="score-fill" style="width:${Math.round(d.reliability_score*100)}%;background:var(--info);"></div></div>
+                <span class="score-label" style="color:var(--info);">${Math.round(d.reliability_score*100)}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="donor-actions">
+          ${canSelect && !isSelected && m.is_available !== false ? `
+            ${m.status !== 'availability_checking' && m.is_available == null ? 
+              `<button class="btn btn-outline btn-sm" onclick="checkAvailability(${m.id}, this)">📞 Check</button>` : ''}
+            ${m.is_available ? `<button class="btn btn-primary btn-sm" onclick="selectDonor(${m.id})">Select →</button>` : ''}
+          ` : ''}
+          ${isSelected ? '<span style="font-size:20px;">⭐</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function checkAvailability(matchId, btn) {
+  btn.disabled = true; btn.textContent = '⏳ Calling...';
+  const r = await api(`/api/requests/${currentRequestId}/donors/${matchId}/check-availability/`, { method: 'POST' });
+  if (r && r.ok) {
+    const avail = r.data.is_available;
+    toast(avail ? '✅ Donor is available!' : '❌ Donor is not available', avail ? 'success' : 'warning');
+    viewRequest(currentRequestId);
+  } else {
+    btn.disabled = false; btn.textContent = '📞 Check';
+    toast('Failed to check availability', 'error');
+  }
+}
+
+async function selectDonor(matchId) {
+  selectedMatchId = matchId;
+  const r = await api(`/api/requests/${currentRequestId}/donors/${matchId}/select/`, { method: 'POST' });
+  if (r && r.ok) {
+    toast('Donor selected! Proceed to payment.', 'success');
+    const pd = r.data.donor_payment_details;
+    document.getElementById('pay-bank').textContent = pd.bank_name || '—';
+    document.getElementById('pay-account').textContent = pd.account_number || '—';
+    document.getElementById('pay-name').textContent = pd.account_name || '—';
+    viewRequest(currentRequestId);
+  } else {
+    toast('Failed to select donor', 'error');
+  }
+}
+
+// ============================================================
+// NEW REQUEST
+// ============================================================
+let selectedUrgency = 'standard';
+function selectUrgency(val) {
+  selectedUrgency = val;
+  document.querySelectorAll('.urgency-opt').forEach(el => {
+    const isSelected = el.dataset.val === val;
+    el.style.borderColor = isSelected ? (val === 'critical' ? 'var(--crimson)' : val === 'urgent' ? 'var(--warning)' : 'var(--success)') : 'var(--border-light)';
+  });
+}
+
+async function submitRequest() {
+  const bloodGroup = document.getElementById('req-blood-group').value;
+  const units = document.getElementById('req-units').value;
+  if (!bloodGroup) { toast('Please select a blood type', 'warning'); return; }
+  
+  const btn = document.getElementById('submit-request-btn');
+  btn.disabled = true; btn.textContent = '🔍 Processing...';
+  
+  const r = await api('/api/requests/', {
+    method: 'POST',
+    body: JSON.stringify({
+      blood_group: bloodGroup,
+      units_needed: parseInt(units),
+      urgency: selectedUrgency,
+      patient_name: document.getElementById('req-patient').value,
+      patient_condition: document.getElementById('req-condition').value,
+    })
+  });
+  
+  btn.disabled = false; btn.innerHTML = '🩸 Submit Blood Request';
+  
+  if (r && r.ok) {
+    toast(`Request submitted! ${r.data.handled_by === 'ml' ? '🧠 AI' : '🔗 N8N'} is finding donors...`, 'success');
+    viewRequest(r.data.request.id);
+  } else {
+    toast(r?.data?.error || 'Failed to submit request', 'error');
+  }
+}
+
+// ============================================================
+// PAYMENT
+// ============================================================
+async function initiatePayment() {
+  const amount = document.getElementById('pay-amount').value;
+  if (!amount) { toast('Please enter the transfer amount', 'warning'); return; }
+  
+  const btn = document.getElementById('pay-btn');
+  btn.disabled = true; btn.textContent = '⏳ Processing...';
+  
+  const r = await api(`/api/payments/${currentRequestId}/initiate/`, {
+    method: 'POST',
+    body: JSON.stringify({
+      amount: parseFloat(amount),
+      sender_bank: document.getElementById('pay-sender-bank').value,
+      sender_account: document.getElementById('pay-sender-account').value,
+      transfer_reference: document.getElementById('pay-reference').value,
+    })
+  });
+  
+  if (r && r.ok) {
+    // Auto-confirm
+    const ref = document.getElementById('pay-reference').value;
+    const cr = await api(`/api/payments/${currentRequestId}/confirm/`, {
+      method: 'POST',
+      body: JSON.stringify({ transfer_reference: ref || `TRF-${Date.now()}` })
+    });
+    if (cr && cr.ok) {
+      toast('Payment confirmed! Donor has been notified.', 'success');
+      btn.style.display = 'none';
+      document.getElementById('close-session-btn').style.display = 'flex';
+    }
+  } else {
+    toast(r?.data?.error || 'Payment failed', 'error');
+  }
+  btn.disabled = false; btn.textContent = '💳 Confirm Transfer & Notify Donor';
+}
+
+async function closeSession() {
+  const r = await api(`/api/payments/${currentRequestId}/close/`, { method: 'POST' });
+  if (r && r.ok) {
+    toast('🎉 Session closed! Donation complete.', 'success');
+    showRequests();
+    loadDashboard();
+  } else {
+    toast('Failed to close session', 'error');
+  }
+}
+
+// ============================================================
+// ML STATUS
+// ============================================================
+async function loadMLStatus() {
+  const r = await api('/api/auth/dashboard/');
+  if (!r || !r.ok) return;
+  const d = r.data;
+  const pct = Math.min((d.ml_training_data / 50) * 100, 100);
+  document.getElementById('ml-big-progress').style.width = pct + '%';
+  document.getElementById('ml-pct-label').textContent = `${d.ml_training_data} / 50 matches`;
+  document.getElementById('ml-data-pts').textContent = d.ml_training_data;
+  document.getElementById('ml-data-bar').style.width = pct + '%';
+  if (d.ml_autonomous_mode) {
+    document.getElementById('ml-mode-header').textContent = '🚀 Autonomous Mode Active!';
+    document.getElementById('ml-mode-desc').textContent = 'The AI engine is now finding donors independently without n8n!';
+  }
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+async function loadProfile() {
+  if (!currentHospital) return;
+  document.getElementById('prof-name').value = currentHospital.name || '';
+  document.getElementById('prof-license').value = currentHospital.license_number || '';
+  document.getElementById('prof-address').value = currentHospital.address || '';
+  document.getElementById('prof-city').value = currentHospital.city || '';
+  document.getElementById('prof-state').value = currentHospital.state || '';
+  document.getElementById('prof-phone').value = currentHospital.phone || '';
+  document.getElementById('prof-email').value = currentHospital.email || '';
+  document.getElementById('prof-bank').value = currentHospital.bank_name || '';
+  document.getElementById('prof-account-num').value = currentHospital.account_number || '';
+  document.getElementById('prof-account-name').value = currentHospital.account_name || '';
+}
+
+async function saveProfile() {
+  const data = {
+    name: document.getElementById('prof-name').value,
+    address: document.getElementById('prof-address').value,
+    city: document.getElementById('prof-city').value,
+    state: document.getElementById('prof-state').value,
+    phone: document.getElementById('prof-phone').value,
+    email: document.getElementById('prof-email').value,
+    bank_name: document.getElementById('prof-bank').value,
+    account_number: document.getElementById('prof-account-num').value,
+    account_name: document.getElementById('prof-account-name').value,
+  };
+  const r = await api('/api/hospital/profile/', { method: 'PATCH', body: JSON.stringify(data) });
+  if (r && r.ok) { currentHospital = r.data; toast('Profile saved!', 'success'); }
+  else toast('Failed to save profile', 'error');
+}
+
+// ============================================================
+// HOSPITAL SETUP
+// ============================================================
+async function setupHospital() {
+  const data = {
+    name: document.getElementById('setup-hname').value,
+    license_number: document.getElementById('setup-license').value,
+    address: document.getElementById('setup-address').value,
+    city: document.getElementById('setup-city').value,
+    state: document.getElementById('setup-state').value,
+    phone: document.getElementById('setup-phone').value,
+    email: document.getElementById('setup-email').value,
+  };
+  const r = await api('/api/hospital/create/', { method: 'POST', body: JSON.stringify(data) });
+  if (r && r.ok) {
+    currentHospital = r.data;
+    document.getElementById('setup-hospital-modal').classList.remove('open');
+    document.getElementById('sidebar-name').textContent = r.data.name;
+    toast('Hospital profile created!', 'success');
+    loadDashboard();
+  } else {
+    toast(Object.values(r?.data || {}).flat().join(' ') || 'Setup failed', 'error');
+  }
+}
+
+// ============================================================
+// N8N TEST
+// ============================================================
+async function testN8NConnection() {
+  toast('Testing N8N connection...', 'info');
+  setTimeout(() => toast('N8N running in mock mode. Set N8N_WEBHOOK_URL env var to connect.', 'warning'), 1000);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function statusBadge(status) {
+  const map = {
+    pending: ['badge-yellow', '⏳ Pending'],
+    sent_to_n8n: ['badge-blue', '🔗 Sent to N8N'],
+    ml_processing: ['badge-purple', '🧠 AI Processing'],
+    donors_found: ['badge-blue', '👥 Donors Found'],
+    donor_selected: ['badge-yellow', '✅ Selected'],
+    payment_pending: ['badge-yellow', '💳 Payment Due'],
+    payment_confirmed: ['badge-green', '✓ Paid'],
+    completed: ['badge-green', '🎉 Complete'],
+    cancelled: ['badge-gray', '✗ Cancelled'],
+    failed: ['badge-red', '❌ Failed'],
+  };
+  const [cls, text] = map[status] || ['badge-gray', status];
+  return `<span class="badge ${cls}">${text}</span>`;
+}
+
+function capitalize(s) { return s ? s[0].toUpperCase() + s.slice(1) : ''; }
+
+function timeAgo(dateStr) {
+  const d = new Date(dateStr);
+  const diff = Date.now() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard!', 'success'));
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  if (token) {
+    initApp();
+  } else {
+    showPage('page-landing');
+  }
+  
+  // Enter key on login
+  document.getElementById('login-password')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+});
+</script>
+</body>
+</html>
