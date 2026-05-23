@@ -34,12 +34,10 @@ redis==5.0.8
 python-dateutil==2.9.0
 
 asgiref==3.11.1
-celery==5.4.0
-django==5.0.6
-django-cors-headers==4.7.0
+
+
 django-filter==25.1
-djangorestframework==3.17.1
-djangorestframework-simplejwt==5.5.1
+
 markdown==3.7
 pyjwt==2.13.0
 sqlparse==0.5.5
