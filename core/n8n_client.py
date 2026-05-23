@@ -4,94 +4,86 @@ from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-class N8NClient:
-    def __init__(self):
-        self.base_url = getattr(settings, 'N8N_WEBHOOK_URL', 'https://your-n8n.com/webhook')
-        self.api_key = getattr(settings, 'N8N_API_KEY', '')
-        self.timeout = 30
 
-    def _headers(self):
-        return {
-            'Content-Type': 'application/json',
-            'X-N8N-API-KEY': self.api_key,
-        }
+class N8NWebhookClient:
+    """
+    All communication with n8n is pure webhooks.
+    App fires POST to n8n and forgets.
+    N8N calls back to the app's inbound webhook endpoints with results.
+    """
+
+    def __init__(self):
+        # The n8n worker gave us this base:
+        # https://donormatch.app.n8n.cloud/webhook-test/emergency-blood-request
+        # So base = https://donormatch.app.n8n.cloud/webhook-test
+        self.base_url = getattr(settings, 'N8N_WEBHOOK_URL', 
+                                 'https://donormatch.app.n8n.cloud/webhook-test').rstrip('/')
+        self.app_url  = getattr(settings, 'BASE_URL', 
+                                 'http://localhost:8000').rstrip('/')
+        self.timeout  = 10  # fire-and-forget, short timeout
+
+    def _post(self, path, payload):
+        url = f'{self.base_url}/{path.lstrip("/")}'
+        try:
+            resp = requests.post(url, json=payload, timeout=self.timeout)
+            logger.info(f'N8N webhook → {url} : {resp.status_code}')
+            return resp.status_code in (200, 201, 202)
+        except requests.exceptions.ConnectionError:
+            logger.warning(f'N8N not reachable at {url}')
+            return False
+        except Exception as e:
+            logger.error(f'N8N webhook error: {e}')
+            return False
 
     def send_blood_request(self, blood_request, hospital):
-        payload = {
-            'request_id': blood_request.id,
-            'blood_group': blood_request.blood_group,
-            'units_needed': blood_request.units_needed,
-            'urgency': blood_request.urgency,
-            'hospital_name': hospital.name,
-            'hospital_city': hospital.city,
-            'hospital_state': hospital.state,
-            'hospital_phone': hospital.phone,
+        """
+        App → N8N
+        Fires to: {base}/emergency-blood-request
+        N8N calls back to: {app_url}/webhook/n8n/donors-found/
+        """
+        return self._post('emergency-blood-request', {
+            'request_id':        blood_request.id,
+            'blood_group':       blood_request.blood_group,
+            'units_needed':      blood_request.units_needed,
+            'urgency':           blood_request.urgency,
+            'hospital_name':     hospital.name,
+            'hospital_city':     hospital.city,
+            'hospital_state':    hospital.state,
+            'hospital_phone':    hospital.phone,
             'patient_condition': blood_request.patient_condition,
-            'callback_url': f'{getattr(settings, "BASE_URL", "http://localhost:8000")}/api/webhook/n8n/donors-found/',
-        }
-        try:
-            resp = requests.post(
-                f'{self.base_url}/blood-request',
-                json=payload,
-                headers=self._headers(),
-                timeout=self.timeout
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                return {'success': True, 'execution_id': data.get('executionId'), 'data': data}
-            else:
-                logger.error(f"N8N error: {resp.status_code} - {resp.text}")
-                return {'success': False, 'error': resp.text}
-        except requests.exceptions.ConnectionError:
-            logger.warning("N8N not reachable - using mock response")
-            return {'success': True, 'execution_id': f'mock-{blood_request.id}', 'mock': True}
-        except Exception as e:
-            logger.error(f"N8N request failed: {e}")
-            return {'success': False, 'error': str(e)}
+            'callback_url':      f'{self.app_url}/webhook/n8n/donors-found/',
+        })
 
-    def verify_donor_availability(self, donor, request_id):
-        payload = {
-            'donor_id': donor.id,
-            'donor_phone': donor.phone,
-            'donor_name': f'{donor.first_name} {donor.last_name}',
-            'request_id': request_id,
-            'blood_group': donor.blood_group,
-        }
-        try:
-            resp = requests.post(
-                f'{self.base_url}/check-donor-availability',
-                json=payload,
-                headers=self._headers(),
-                timeout=self.timeout
-            )
-            if resp.status_code == 200:
-                return resp.json()
-            return {'available': False, 'error': resp.text}
-        except requests.exceptions.ConnectionError:
-            import random
-            return {'available': random.random() > 0.3, 'mock': True}
-        except Exception as e:
-            return {'available': False, 'error': str(e)}
+    def request_availability_check(self, match):
+        """
+        App → N8N
+        Fires to: {base}/check-donor-availability
+        N8N calls back to: {app_url}/webhook/n8n/availability-result/
+        """
+        donor = match.donor
+        return self._post('check-donor-availability', {
+            'match_id':     match.id,
+            'donor_id':     donor.id,
+            'donor_phone':  donor.phone,
+            'donor_name':   f'{donor.first_name} {donor.last_name}',
+            'blood_group':  donor.blood_group,
+            'callback_url': f'{self.app_url}/webhook/n8n/availability-result/',
+        })
 
-    def notify_selected_donor(self, donor, hospital, payment_details):
-        payload = {
-            'donor_id': donor.id,
-            'donor_phone': donor.phone,
-            'donor_name': f'{donor.first_name} {donor.last_name}',
-            'hospital_name': hospital.name,
-            'hospital_address': hospital.address,
-            'payment_amount': str(payment_details.get('amount', 0)),
-            'payment_reference': payment_details.get('reference', ''),
-        }
-        try:
-            resp = requests.post(
-                f'{self.base_url}/notify-donor',
-                json=payload,
-                headers=self._headers(),
-                timeout=self.timeout
-            )
-            return resp.status_code == 200
-        except:
-            return True  # Mock success
+    def notify_selected_donor(self, donor, hospital, amount, reference):
+        """
+        App → N8N
+        Fires to: {base}/notify-donor
+        No callback needed.
+        """
+        return self._post('notify-donor', {
+            'donor_name':        f'{donor.first_name} {donor.last_name}',
+            'donor_phone':       donor.phone,
+            'hospital_name':     hospital.name,
+            'hospital_address':  hospital.address,
+            'payment_amount':    str(amount),
+            'payment_reference': reference,
+        })
 
-n8n_client = N8NClient()
+
+n8n_client = N8NWebhookClient()
